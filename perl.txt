@@ -1,0 +1,122 @@
+open LOG, "</var/log/secure";
+open OUT, ">secure_out.log";
+my $failedCount = 0;            # number of bad logins from any user
+my $successCount = 0;           # number of successful logins from any user
+my $badUserCount = 0;           # number of bad users
+my $badPasswordCount = 0;       # number of bad passwords, excludes bad users
+
+my %ips;
+my %users;
+my %successful;
+my %failed;
+#first, ignore comment lines
+next if ($line =~ /\s*#/);
+
+if($line =~ /[Ii]nvalid\suser\s(\w+)\sfrom\s(\d+\.\d+\.\d+\.\d+)/)
+{
+  print OUT "Invalid user: $1 from IP: $2\n";
+  if(exists $ips{$2})
+  {
+    $ips{$2}++;
+  }
+  else
+  {
+    $ips{$2} = 1;
+  }
+  if(exists $users{$1})
+  {
+    $users{$1}++;
+  }
+  else
+  {
+    $users{$1} = 1;
+  }
+  if(exists $failed{$1})
+  {
+    $failed{$1}++;
+  }
+  else
+  {
+    $failed{$1} = 1;
+  }
+  $failedCount++;
+  $badUserCount++;
+}
+elsif($line =~ /[Ff]ailed\spassword\sfor\s(\w+)\sfrom\s(\d+\.\d+\.\d+\.\d+)/)
+{
+  print OUT "Bad password for user: $1 from IP: $2\n";
+  if(exists $ips{$2})
+  {
+    $ips{$2}++;
+  }
+  else
+  {
+    $ips{$2} = 1;
+  }
+  if(exists $users{$1})
+  {
+    $users{$1}++;
+  }
+  else
+  {
+    $users{$1} = 1;
+  }
+  if(exists $failed{$1})
+  {
+    $failed{$1}++;
+  }
+  else
+  {
+    $failed{$1} = 1;
+  }
+  $failedCount++;
+  $badPasswordCount++;
+}
+elsif($line =~ /[Aa]ccepted\spassword\sfor\s(\w+)\sfrom\s(\d*\.\d*\.\d*\.\d*)/
+  || $line =~ /[Aa]ccepted\spublickey\sfor\s(\w+)\sfrom\s(\d*\.\d*\.\d*\.\d*)/)
+{
+  print OUT "Successful Login for User: $1 from IP: $2\n";
+  if(exists $ips{$2})
+  {
+    $ips{$2}++;
+  }
+  else
+  {
+    $ips{$2} = 1;
+  }
+  if(exists $users{$1})
+  {
+    $users{$1}++;
+  }
+  else
+  {
+    $users{$1} = 1;
+  }
+  if(exists $successful{$1})
+  {
+    $successful{$1}++;
+  }
+  else
+  {
+    $successful{$1} = 1;
+  }
+  $successCount++;
+}
+while(($ip, $count) = each %ips)
+{
+  print "LOGIN - $ip attempted $count times\n";
+}
+while(($user, $count) = each %users)
+{
+  print "LOGIN - $user attempted $count times\n";
+}
+while(($user, $count) = each %failed)
+{
+  print "FAILED - $user attempted $count times\n";
+}
+while(($user, $count) = each %successful)
+{
+  print "SUCCESS - $user attempted $count times\n";
+}
+
+print <<END_OF_MESSAGE
